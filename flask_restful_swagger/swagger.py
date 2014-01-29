@@ -1,5 +1,5 @@
 from flask.ext.restful import Resource, fields
-from flask import request
+from flask import request, views
 import inspect
 import functools
 import re
@@ -10,29 +10,47 @@ from flask_restful_swagger import html
 
 resource_listing_endpoint = None
 
-def docs(api, apiVersion='0.0', swaggerVersion='1.2',
+def docs(api,
+         apiVersion='0.0',
+         swaggerVersion='1.2',
          basePath='http://localhost:5000',
          resourcePath='/',
          produces=["application/json"],
-         api_spec_url='/api/spec'):
-
+         api_spec_url='/api/spec',
+         blueprint=None):
   api_add_resource = api.add_resource
 
-  def add_resource(resource, path, *args, **kvargs):
+  def doc_resource(resource, path):
     endpoint = swagger_endpoint(resource, path)
-    # Add a .help.json help url
     swagger_path = extract_swagger_path(path)
+
+    # Add a .help.json help url
     endpoint_path = "%s_help_json" % resource.__name__
     api_add_resource(endpoint, "%s.help.json" % swagger_path,
-                     endpoint=endpoint_path)
+                         endpoint=endpoint_path)
+
     # Add a .help.html help url
     endpoint_path = "%s_help_html" % resource.__name__
     api_add_resource(endpoint, "%s.help.html" % swagger_path,
                      endpoint=endpoint_path)
+
     register_once(api_add_resource, apiVersion, swaggerVersion, basePath,
                   resourcePath, produces, api_spec_url)
+
+  def add_resource(resource, path, *args, **kvargs):
+    doc_resource(resource, path)
     return api_add_resource(resource, path, *args, **kvargs)
+
   api.add_resource = add_resource
+
+  def add_blueprint_state(state):
+    for rule in state.app.url_map.iter_rules():
+      resource = state.app.view_functions[rule.endpoint]
+      if isinstance(resource, views.MethodViewType):
+        doc_resource(resource, rule.rule)
+
+  if blueprint:
+    blueprint.record(add_blueprint_state)
 
   return api
 
