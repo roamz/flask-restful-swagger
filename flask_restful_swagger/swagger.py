@@ -46,8 +46,8 @@ def docs(api,
   def add_blueprint_state(state):
     for rule in state.app.url_map.iter_rules():
       resource = state.app.view_functions[rule.endpoint]
-      if isinstance(resource, views.MethodViewType):
-        doc_resource(resource, rule.rule)
+      if isinstance(getattr(resource, 'view_class', None), views.MethodViewType):
+        doc_resource(resource.view_class, rule.rule)
 
   if blueprint:
     blueprint.record(add_blueprint_state)
