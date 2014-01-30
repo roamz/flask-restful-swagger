@@ -168,7 +168,7 @@ python example.py
 And visit:
 
 ```
-curl http://localhost:5000/api/spec.json
+curl http://localhost:5000/api/spec.jsone
 ```
 
 # Passing more metadata to swagger
@@ -319,6 +319,38 @@ Here's a screenshot to illustrate:
 ![An example .help.html page](http://cl.ly/image/160E3G2F2B3u/Screen%20Shot%202013-12-10%20at%209.49.37%20PM.png)
 
 
+# Flask blueprints
+It is possible to bypass most of flask restful and use MethodsViews via blueprints like follows
+```python
+from flask import Flask, Blueprint, views, current_app, jsonify
+from flask_restful import fields, Api, abort
+from flask_restful_swagger import swagger
+
+blueprint = Blueprint('my_app', __name__)
+blueprint.add_url_rule('/todo', view_func=Todo.as_view('alerts'))
+blueprint.add_url_rule('/todo/<int:todo_id>', view_func=Todos.as_view('alert'))
+
+app = Flask(__name__)
+api = Api(default_mediatype='application/json')
+# do not register the blueprint with flast.ext.restless.Api()
+# until after swagger has registered itself with the
+# blueprint with api.init_app(blueprint)
+
+# setup swagger docs using the blueprint.record callback
+api = swagger.docs(api, blueprint=blueprint)
+
+# register any restless resources you
+# may want here if required
+
+# now load blueprint into restless api
+api.init_app(blueprint)
+
+# then register blueprint
+app.register_blueprint(blueprint)
+
+app.run(debug=True)
+```
+See example_blueprint.py for a complete example
 
 
 __This project is part of the [Cloudify Cosmo project](https://github.com/CloudifySource/)__
